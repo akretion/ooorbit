@@ -1,0 +1,170 @@
+==========================
+Version 1.5 (October 25th)
+==========================
+
+  Release post:
+  http://giantrobots.thoughtbot.com/2007/10/25/jester-1-5-universal-rest
+  
+  NOTICE: This release is not backwards compatible with earlier versions.
+  
+  * Total rewrite of the object hierarchy and Resource.model function.
+      Objects returned from User.find(1) are now instances of the User class, not Base.
+  
+  * Renamed Base to Resource.  If "Resource" still conflicts with other libraries you are working with, you can refer to it as Jester.Resource.
+  
+  * Support for Twitter-style JSON callbacks (aka "JSONP"), allowing read-only remote site support for sites which offer this.  This method does not use Prototype or AJAX, but inserts a <script> tag.  Thus, find() calls *must* be made asynchronously, and *only* submitting a function as a callback argument (instead of a Prototype options hash).  Example:
+      
+      Resource.model("User", {
+        format: "json",
+        prefix: "http://externaldomain.com"
+      })
+      // fetches http://externaldomain.com/users/1.xml?json=jesterCallback and calls myCallback with the loaded User
+      User.find(1, myCallback)
+   
+    Objects returned can be modified, but save(), destroy(), create(), and updateAttributes() will all return false, as no POSTs can be made.
+    
+  * Basic path prefixes are supported, using ActiveResource syntax to denote prefix options.  Values for these options can be mixed in with the parameters hash argument of a find() call.  For example, to find all posts by the User with ID 1, at /users/1/posts.xml:
+    
+      Resource.model("Post", {prefix: "/users/:user_id"})
+      
+      // request to /users/1/posts.xml
+      posts = Post.find("all", {user_id: 1})
+      
+      // request to /users/1/posts.xml?key=value
+      posts = Post.find("all", {user_id: 1, key: value})
+  
+  * All API URLs for a model can be accessed individually.  
+  Accepted URLs are: show, list, new, create, update, index, destroy.
+    URLs for "show", "list", and "new" will be set by default based on the model name.
+    "create" and "index" will default to the value set for "list".
+    "destroy" and "update" will default to the value set for "show".
+  If needed, each URL can be accessed through a helper method of the style "_show_url()".  It can be called on either the class or the instance, and will interpolate a hash of arguments.  Example:
+  
+      User._show_url() => "http://domain.com/users/:id.xml"
+      User._show_url(1) => "http://domain.com/users/1.xml"
+      User.find(1)._show_url({admin: true}) => "http://domain.com/users/1.xml?admin=true"
+  
+  * All API URLs for a model can be customized individually.  For example, a Twitter model customized to Twitter's non-standard API:
+      
+      Resource.model("Twitter", {
+        format: "json", 
+        prefix: "http://twitter.com",
+        urls: {
+          show: "/statuses/show/:id.json",
+          list: "/statuses/user_timeline/:username.json"
+        }
+      })
+      // request to load http://twitter.com/statuses/user_timeline/jesterjs.json?callback=jesterCallback
+      // and call myCallback with the array of Twitter objects
+      Twitter.find("all", {username: "jesterjs"}, myCallback)
+  
+  * If your controller supports the "new" action, to provide an object skeleton, you can instruct the model to fetch this skeleton.  It will be fetched once, when the resource is modeled.  This replaces the old method, where the checkNew argument was passed on each call to build, which was silly.  Example:
+      
+      Resource.model("User", {checkNew: true})
+      
+    This operation is (now) asynchronous by default, "checkNew" is still a silly name for the option, I'm open to better ideas.
+  
+  * Some littler things:
+    - For JSON requests, autotransform any field ending in "_at" or "_on" into a date (not just created/updated_at/on).
+    - Only instantiate ObjTree if a model is defined that uses the XML format.
+    - Various bugfixes, including major one where CamelCased models names weren't handled correctly.
+
+========================
+Version 1.3 (June 10th)
+========================
+
+  Release post:
+  http://giantrobots.thoughtbot.com/2007/6/10/jester-1-3-jsonic-rest
+
+  * JSON support.  Specify that all requests will be posting to .json URLs, and parsing JSON responses, by setting the "format" option inside Base.model().  This option defaults to "xml".
+    
+      Base.model("User", {format: "json"})
+  
+    Using JSON, most attributes will not be cast into their type.  The "id" column will be cast to an integer, and if a field is named "created_on", "created_at", "updated_at", or "updated_on", it will be parsed into a Date object.
+  
+  * Now passes through Prototype's optional "json" argument to Ajax callbacks.  If an X-JSON header came back with the response from an Ajax request, Prototype will return this json alongside the transport object.
+  
+      User.save(function(user, json) {yourHandler(json);})
+      
+  * Added helper methods updateAttributes(), and setAttributes().  Both set the attributes of the object to the passed hash, however updateAttributes() will call save the object when done.  For this reason, updateAttributes() accepts a 2nd optional callback argument (either a function or a Prototype Ajax.Request options hash).
+  
+  * Now safe to use Prototype-style hashes (using $H) when calling build, create, setAttributes, or updateAttributes.
+  
+  * Bug fix on translating dashes to underscores in field names.  Thanks to Pete Forde for the patch.
+
+
+========================
+Version 1.2 (April 30th)
+========================
+
+  Release post:
+  http://giantrobots.thoughtbot.com/2007/4/30/jester-1-2-flexible-rest
+
+  * Arguments to Base.model() now passed as a hash.  So:
+      
+      Base.model("User", {plural: "people", prefix: "http://www.thoughtbot.com"})
+  
+  * Initial support for figuring out a model's attributes on "build" by using /new.xml, a recent expansion to Rails' REST standard. (Changeset #6579)
+  
+      An HTTP request will not occur by default on a call to build(), supply a hash with the option "checkNew" set to true.  
+      This action is also currently forced to be synchronous.  I expect this to change, but I need some feedback on syntax before that happens.
+  
+      For a discussion, see:
+      http://groups.google.com/group/rubyonrails-core/browse_thread/thread/e36b84f9c1c3fe38
+  
+  * Asynchronous options can be provided as a hash, instead of simply providing an onComplete callback.
+  
+      Additionally, this is now the *third* argument to find, where query parameters are the second.
+      You can use this hash and still force synchronous mode by specifying the "asynchronous" option as "false".
+      
+      User.find(1, {}, {onSuccess: successCallback, onFailure: failureCallback})
+      
+  * Additional query parameters to find(), taken as a second argument in hash form.  
+  
+      User.find("all", {admin: true, toys: 5}, {onSuccess: callback})
+      => asynchronously requests "/users.xml?admin=true&toys"
+      
+  * Added (packed) date parsing code. (Nicholas Barthelemy)
+  
+  * If the response from a save() call includes an XML body, the model will be reloaded with that data.
+  
+  * Removed prototype.js from repository, included an optional, lightened version with only what Jester uses.
+  
+  * Packed ObjTree and included it in jester.js, eliminating ObjTree.js.
+  
+  * Little things:
+      
+      ID will be set on a find(id) call, even if the ID isn't in the returned XML response.
+      Bug: ID wasn't being stored as a property correctly when it was parsed out of a Location header.
+      Bug: One in ObjTree, where it didn't catch nodes with no text data in them (e.g. "<email></email>").
+      Bug: Removed commas at the end of some hashes, which IE chokes on.
+
+========================
+Version 1.1 (April 16th)
+========================
+
+  Release post:
+  http://giantrobots.thoughtbot.com/2007/4/16/jester-1-1-asynchronous-and-more
+
+  * Asynchronous support.
+  
+  * find('all'), find('first') - works like ActiveRecord.
+  
+  * attributes() - works like ActiveRecord.
+  
+  * reload() - works like ActiveRecord.
+  
+  * Pluralization, a proper Inflector library. (Ryan Schuft)
+  
+  * Cleaned up and expanded JsUnit tests.
+  
+  * Significant code cleanup and prettifying.
+
+========================
+Version 1.0 (April 2nd)
+========================
+
+  Release post:
+  http://giantrobots.thoughtbot.com/2007/4/2/jester-javascriptian-rest
+
+  * Initial release.
