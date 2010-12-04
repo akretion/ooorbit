@@ -27,6 +27,14 @@ Jester.Constructor = function(model){
 var jesterCallback = null;
 
 _.extend(Jester.Resource, {
+  get: function(model)
+  {
+    options = {};
+    options['plural'] = model;
+    options['format'] = 'json';
+    options['prefix'] = 'http://localhost:3000';
+    return this.model(model, options);
+  },
   model: function(model, options)
   {
     var new_model = null;
