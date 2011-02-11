@@ -32,7 +32,7 @@ _.extend(Jester.Resource, {
     options = {};
     options['plural'] = model;
     options['format'] = 'json';
-    options['prefix'] = 'http://localhost:3000';
+    options['prefix'] = 'http://localhost:3000/ooorest/';
     return this.model(model, options);
   },
   model: function(model, options)
@@ -232,15 +232,21 @@ _.extend(Jester.Resource, {
 
       return base;
     });
+    if (!params) params = {};
     if (id == "first" || id == "all") {
+      var url = this._all_url(params);
+      return this.requestAndParse(this._format, findAllWork, url, {}, callback, this._remote);
+    } else if (id instanceof Array) {
+      params.ids = id;
       var url = this._list_url(params);
+      console.log(url)
       return this.requestAndParse(this._format, findAllWork, url, {}, callback, this._remote);
     } else {
       if (isNaN(parseInt(id))) return null;
-      if (!params) params = {};
       params.id = id;
 
       var url = this._show_url(params);
+      console.log(url)
       return this.requestAndParse(this._format, findOneWork, url, {}, callback, this._remote);
     }
   },
@@ -315,19 +321,24 @@ _.extend(Jester.Resource, {
   },
 
   _url_for : function(action, params) {
+    console.log("_url_for")
+    console.log(action, params)
     if (!this._urls[action]) return "";
     // if an integer is sent, it's assumed just the ID is a parameter
     if (typeof(params) == "number") params = {id: params}
 
     params = _(_(this._defaultParams).clone()).extend(params);
+    console.log(params)
     var url = this._interpolate(this._prefix + this._urls[action], params);
+    console.log(url)
     return url + (params && !(true == _(params).isEmpty()) ? "?" + _(params).toQueryString() : "");
   },
 
   _default_urls : function(options) {
     urls = {
       'show' : "/" + options.plural + "/:id." + options.format,
-      'list' : "/" + options.plural + "." + options.format,
+      'all' : "/" + options.plural + "." + options.format,
+      'list' : "/" + options.plural + "/:ids." + options.format,
       'new' : "/" + options.plural + "/new." + options.format
     }
     urls.create = urls.list;
@@ -345,6 +356,13 @@ _.extend(Jester.Resource, {
 
     var attributes = {};
     var i = 0;
+    console.log("json before");
+    console.log(json);
+    console.log(this.klass);
+    if(json[this.options.name]) json = json[this.options.name]
+    console.log("json after");
+    console.log(json);
+    
     for (var attr in json) {
       var value = json[attr];
       if (attr == "id")
@@ -585,6 +603,7 @@ _.extend(Jester.Resource.prototype, {
           var attributes;
           if (this.klass._format == "json") {
             attributes = this._attributesFromJSON(transport.responseText);
+            console.log(attributes);
           }
           else {
             var doc = Jester.Tree.parseXML(transport.responseText);
@@ -670,6 +689,9 @@ _.extend(Jester.Resource.prototype, {
 
   _attributesFromJSON: function()
   {
+    console.log("_attributesFromJSON");
+    console.log(arguments);
+    console.trace();
     return this.klass._attributesFromJSON.apply(this.klass, arguments);
   },
 
