@@ -869,7 +869,7 @@ _.mixin({
 
 	      if (values && typeof values == 'object') {
 	        if (_.isArray(values))
-	          return results.concat(_.map(values, _.bind(_.toQueryPair, '', [key])));
+	          return results.concat(_.map(values, _.bind(_.toQueryPair, '', [key + "[]"])));
 	      } else results.push(_.toQueryPair(key, values));
 	      return results;
 	    }).join('&');
