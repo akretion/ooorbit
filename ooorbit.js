@@ -220,8 +220,11 @@ _.extend(Jester.Resource, {
   },
   
   call : function(params, callback) {
+    var callWork = bind(function(doc) {
+    });
+
     var url = this._call_url(params);
-    return this.requestAndParse(this._format, todo, url, {}, callback, this._remote);
+    return this.requestAndParse(this._format, callWork, url, {}, callback, this._remote);
   },
   
   find : function(id, params, callback) {
