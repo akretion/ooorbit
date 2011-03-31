@@ -2,8 +2,15 @@
 // Compatible, tested with Underscore 1.0.1
 // Released under the MIT License.
 
+
+String.prototype.toOpenERPName = function(){
+	return this.replace(/([A-Z])/g, function($1){return "_"+$1.toLowerCase();}).replace(/^\_*/g, "");
+};
+
+
 var Jester = {}
 Jester.Resource = function(){};
+Jester.Resource.config = {prefix: 'http://localhost:3000/ooorest/', database: 'database', user: 'admin'}
 
 Jester.AjaxHandler = function(url, options) {
 	if(typeof(Ajax) != 'undefined') {
@@ -27,18 +34,34 @@ Jester.Constructor = function(model){
 var jesterCallback = null;
 
 _.extend(Jester.Resource, {
+  doNothing : function(options) {//FIXME ugly workaround
+  },
+  configure : function(options) {
+    options = options || {}
+    this.config['prefix'] = options['prefix'] || 'http://localhost:3000/ooorest/';//TODO set all options properly
+    return this.config;
+  },
+  login : function(login, password, database) {
+    var url = "http://localhost:3000/session/login?login=" + login + "&password=" + password + "&database=" + database;
+    return this.requestAndParse('json', this.doNothing, url, {}, this.doNothing, this._remote);
+  },
+  logout : function() {
+    var url = "http://localhost:3000/session/logout";
+    return this.requestAndParse('json', this.doNothing, url, {}, this.doNothing, this._remote);
+  },
   get: function(model)
   {
     options = {};
-    options['plural'] = model;
+    options['plural'] = model.toOpenERPName();
     options['format'] = 'json';
-    options['prefix'] = 'http://localhost:3000/ooorest/';
+    options['prefix'] = this.config['prefix'];//'http://localhost:3000/ooorest/';//TODO if no conf!!
     return this.model(model, options);
   },
   model: function(model, options)
   {
     var new_model = null;
     new_model = eval(model + " = " + Jester.Constructor(model));
+    model = model.toOpenERPName();
     _.extend(new_model, Jester.Resource);
     new_model.prototype = new Jester.Resource();
 
@@ -195,7 +218,12 @@ _.extend(Jester.Resource, {
       return callback(Jester.AjaxHandler(url, options));
     }
   },
-
+  
+  call : function(params, callback) {
+    var url = this._call_url(params);
+    return this.requestAndParse(this._format, todo, url, {}, callback, this._remote);
+  },
+  
   find : function(id, params, callback) {
     // allow a params hash to be omitted and a callback function given directly
     if (!callback && typeof(params) == "function") {
@@ -869,7 +897,7 @@ _.mixin({
 
 	      if (values && typeof values == 'object') {
 	        if (_.isArray(values))
-	          return results.concat(_.map(values, _.bind(_.toQueryPair, '', [key + "[]"])));
+	          return results.concat(_.map(values, _.bind(_.toQueryPair, '', [key])));
 	      } else results.push(_.toQueryPair(key, values));
 	      return results;
 	    }).join('&');
