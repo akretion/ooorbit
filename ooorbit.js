@@ -224,6 +224,7 @@ _.extend(Jester.Resource, {
     });
 
     var url = this._call_url(params);
+      //this.options.prefix + "/" + this.options.singular + //this._call_url(params);
     return this.requestAndParse(this._format, callWork, url, {}, callback, this._remote);
   },
   
@@ -688,6 +689,23 @@ _.extend(Jester.Resource.prototype, {
 
     // send the request
     return this.klass.request(saveWork, url, {parameters: objParams, method: method}, callback);
+  },
+
+  call : function() {
+    var args = Array.prototype.slice.call(arguments);
+    var callback = bind(function(doc) {
+    });
+
+    var callWork = bind(this, function(transport) {
+      return transport;
+    });
+
+    //var url = this._call_url(params);
+    var url = this.klass.options.prefix + "/" + this.klass.options.singular + "/" + this.id + "/call." + this.klass.options.format
+    var param_string = args.slice(1, 1000).join(",");
+
+    alert(param_string);
+    return this.klass.requestAndParse('json', callWork, url, {parameters: {method: args.slice(0, 1), param_string: param_string}, method: "post"});
   },
 
   setAttributes : function(attributes)
