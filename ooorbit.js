@@ -13,8 +13,12 @@ Jester.Resource = function(){};
 Jester.Resource.config = {prefix: 'http://localhost:3000/ooorest/', database: 'database', user: 'admin'}
 
 Jester.AjaxHandler = function(url, options) {
+  //console.log(options);
+  //console.trace();
 	if(typeof(Ajax) != 'undefined') {
 		return new Ajax.Request(url, options).transport;
+	} else if (typeof($) != 'undefined') {
+    return $.ajax(url, options);
 	} else {
 		return false;
 	}
@@ -181,7 +185,7 @@ _.extend(Jester.Resource, {
     } else {
       parse_and_callback = function(transport) {
         if (transport.status == 500) return callback(null);
-		console.log(Jester.Tree.parseXML(transport.responseText));
+		//console.log(Jester.Tree.parseXML(transport.responseText));
         return callback(Jester.Tree.parseXML(transport.responseText));
       }
     }
@@ -215,7 +219,13 @@ _.extend(Jester.Resource, {
     else
     {
       options.asynchronous = false; // Make sure it's set, to avoid being overridden.
-      return callback(Jester.AjaxHandler(url, options));
+      //console.log(callback);
+      //console.log('avant');
+      one = Jester.AjaxHandler(url, options);
+      //console.log(one);
+      two = callback(one);
+      //console.log(two);
+      return two;
     }
   },
   
@@ -271,14 +281,14 @@ _.extend(Jester.Resource, {
     } else if (id instanceof Array) {
       params.ids = id;
       var url = this._list_url(params);
-      console.log(url)
+      //console.log(url)
       return this.requestAndParse(this._format, findAllWork, url, {}, callback, this._remote);
     } else {
       if (isNaN(parseInt(id))) return null;
       params.id = id;
 
       var url = this._show_url(params);
-      console.log(url)
+      //console.log(url)
       return this.requestAndParse(this._format, findOneWork, url, {}, callback, this._remote);
     }
   },
@@ -353,16 +363,16 @@ _.extend(Jester.Resource, {
   },
 
   _url_for : function(action, params) {
-    console.log("_url_for")
-    console.log(action, params)
+    //console.log("_url_for")
+    //console.log(action, params)
     if (!this._urls[action]) return "";
     // if an integer is sent, it's assumed just the ID is a parameter
     if (typeof(params) == "number") params = {id: params}
 
     params = _(_(this._defaultParams).clone()).extend(params);
-    console.log(params)
+    //console.log(params)
     var url = this._interpolate(this._prefix + this._urls[action], params);
-    console.log(url)
+    //console.log(url)
     return url + (params && !(true == _(params).isEmpty()) ? "?" + _(params).toQueryString() : "");
   },
 
@@ -388,12 +398,12 @@ _.extend(Jester.Resource, {
 
     var attributes = {};
     var i = 0;
-    console.log("json before");
-    console.log(json);
-    console.log(this.klass);
+    //console.log("json before");
+    //console.log(json);
+    //console.log(this.klass);
     if(json[this.options.name]) json = json[this.options.name]
-    console.log("json after");
-    console.log(json);
+    //console.log("json after");
+    //console.log(json);
     
     for (var attr in json) {
       var value = json[attr];
@@ -635,7 +645,7 @@ _.extend(Jester.Resource.prototype, {
           var attributes;
           if (this.klass._format == "json") {
             attributes = this._attributesFromJSON(transport.responseText);
-            console.log(attributes);
+            //console.log(attributes);
           }
           else {
             var doc = Jester.Tree.parseXML(transport.responseText);
@@ -702,10 +712,20 @@ _.extend(Jester.Resource.prototype, {
 
     //var url = this._call_url(params);
     var url = this.klass.options.prefix + "/" + this.klass.options.singular + "/" + this.id + "/call." + this.klass.options.format
-    var param_string = args.slice(1, 1000).join(",");
-
-    alert(param_string);
-    return this.klass.requestAndParse('json', callWork, url, {parameters: {method: args.slice(0, 1), param_string: param_string}, method: "post"});
+    var param_string = args.slice(1, args.length - 1).join(",");
+    last_arg = args[args.length - 1]
+    alert(last_arg);
+    params = {}
+    if (typeof last_arg == 'object') {
+      alert("obj");
+      params = last_arg
+    } else {
+      param_string += "," + last_arg
+    }
+    params['method'] = args.slice(0, 1)
+    params['param_string'] = param_string
+    //console.log(params);
+    return this.klass.requestAndParse('json', callWork, url, {parameters: params, method: "post"});
   },
 
   setAttributes : function(attributes)
