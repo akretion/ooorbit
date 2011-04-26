@@ -713,14 +713,16 @@ _.extend(Jester.Resource.prototype, {
     //var url = this._call_url(params);
     var url = this.klass.options.prefix + "/" + this.klass.options.singular + "/" + this.id + "/call." + this.klass.options.format
     var param_string = args.slice(1, args.length - 1).join(",");
-    last_arg = args[args.length - 1]
-    //alert(last_arg);
-    params = {}
-    if (typeof last_arg == 'object') {
-      //alert("obj");
-      params = last_arg
-    } else {
-      param_string += "," + last_arg
+    params = {};
+    if (args.length > 1) {
+        last_arg = args[args.length - 1]
+        //alert(last_arg);
+        if (typeof last_arg == 'object') {
+          //alert("obj");
+          params = last_arg
+        } else {
+          param_string += "," + last_arg
+        }
     }
     params['method'] = args.slice(0, 1)
     params['param_string'] = param_string
