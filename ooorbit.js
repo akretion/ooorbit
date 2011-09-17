@@ -10,7 +10,7 @@ String.prototype.toOpenERPName = function(){
 
 var Jester = {}
 Jester.Resource = function(){};
-Jester.Resource.config = {prefix: 'http://localhost:3000/ooorest/', database: 'database', user: 'admin'}
+Jester.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'}
 
 Jester.AjaxHandler = function(url, options) {
   //console.log(options);
