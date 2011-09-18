@@ -219,13 +219,11 @@ _.extend(Jester.Resource, {
     else
     {
       options.asynchronous = false; // Make sure it's set, to avoid being overridden.
-      //console.log(callback);
-      //console.log('avant');
-      one = Jester.AjaxHandler(url, options);
-      //console.log(one);
-      two = callback(one);
-      //console.log(two);
-      return two;
+      options.async = false;
+      options.type = options.method;
+      options.data = options.parameters;
+      res = Jester.AjaxHandler(url, options);
+      return callback(res);
     }
   },
   
@@ -724,7 +722,7 @@ _.extend(Jester.Resource.prototype, {
           param_string += "," + last_arg
         }
     }
-    params['method'] = args.slice(0, 1)
+    params['method'] = args.slice(0, 1)[0]
     params['param_string'] = param_string
     //console.log(params);
     return this.klass.requestAndParse('json', callWork, url, {parameters: params, method: "post"});
