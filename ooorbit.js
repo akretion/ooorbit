@@ -66,16 +66,10 @@ _.extend(Jester.Resource, {
     model = model.toOpenERPName();
     _.extend(new_model, Jester.Resource);
     new_model.prototype = new Jester.Resource();
-
-    // We delay instantiating XML.ObjTree() so that it can be listed at the end of this file instead of the beginning
-    if (!Jester.Tree) {
-      Jester.Tree = new XML.ObjTree();
-      Jester.Tree.attr_prefix = "@";
-    }
     if (!options) options = {};
 
     var default_options = {
-      format:   "xml",
+      format:   "json",
       singular: _(model).underscore(),
       name:     model,
       defaultParams: {}
@@ -83,8 +77,6 @@ _.extend(Jester.Resource, {
     options              = _.extend(default_options, options);
     options.format       = options.format.toLowerCase();
     options.plural       = _(options.singular).pluralize(options.plural);
-    options.singular_xml = options.singular.replace(/_/g, "-");
-    options.plural_xml   = options.plural.replace(/_/g, "-");
     options.remote       = false;
 
     // Establish prefix
@@ -141,10 +133,7 @@ _.extend(Jester.Resource, {
       async = true;
 
     var buildWork = bind(model, function(doc) {
-      if (this._format == "json")
-        this._attributes = this._attributesFromJSON(doc);
-      else
-        this._attributes = this._attributesFromTree(doc[this._singular_xml]);
+      this._attributes = this._attributesFromJSON(doc);
     });
     model.requestAndParse(options.format, buildWork, model._new_url(), {asynchronous: async});
   },
@@ -173,18 +162,10 @@ _.extend(Jester.Resource, {
     if (remote && format == "json" && user_callback && Jester.singleOrigin == true)
       return this.loadRemoteJSON(url, callback, user_callback)
 
-    parse_and_callback = null;
-    if (format.toLowerCase() == "json") {
-      parse_and_callback = function(transport) {
+    parse_and_callback = function(transport) {
         if (transport.status == 500) return callback(null);
         eval("var attributes = " + transport.responseText); // hashes need this kind of eval
         return callback(attributes);
-      }
-    } else {
-      parse_and_callback = function(transport) {
-        if (transport.status == 500) return callback(null);
-        return callback(Jester.Tree.parseXML(transport.responseText));
-      }
     }
 
     // most parse requests are going to be a GET
@@ -406,123 +387,16 @@ _.extend(Jester.Resource, {
     return attributes;
   },
 
-  // Converts the XML tree returned from a single object into a hash of attribute values
-  _attributesFromTree : function(elements) {
-    var attributes = {};
-	x = 0;
-    for (var attr in elements) {
-	x++;
-      // pull out the value
-      var value = elements[attr];
-      if (elements[attr] && elements[attr]["@type"]) {
-        if (elements[attr]["#text"])
-          value = elements[attr]["#text"];
-        else
-          value = undefined;
-      }
-
-      // handle empty value (pass it through)
-      if (!value) {}
-
-      // handle scalars
-      else if (typeof(value) == "string") {
-        // perform any useful type transformations
-        if (elements[attr]["@type"] == "integer") {
-          var num = parseInt(value);
-          if (!isNaN(num)) value = num;
-        }
-        else if (elements[attr]["@type"] == "boolean")
-          value = (value == "true");
-        else if (elements[attr]["@type"] == "datetime") {
-          var date = Date.parse(value);
-          if (!isNaN(date)) value = date;
-        }
-      }
-      // handle arrays (associations)
-      else {
-        var relation = value; // rename for clarity in the context of an association
-
-        // first, detect if it's has_one/belongs_to, or has_many
-        var i = 0;
-        var singular = null;
-        var has_many = false;
-        for (var val in relation) {
-          if (i == 0)
-            singular = val;
-          i += 1;
-        }
-
-        // has_many
-        if (relation[singular] && typeof(relation[singular]) == "object" && i == 1) {
-          var value = [];
-          var plural = attr;
-          var name = _(_(singular).camelize()).capitalize();
-
-          // force array
-          if (!(elements[plural][singular].length > 0))
-            elements[plural][singular] = [elements[plural][singular]];
-			_(elements[plural][singular]).each(_.bind(function(single) {
-				  // if the association hasn't been modeled, do a default modeling here
-				  // hosted object's prefix and format are inherited, singular and plural are set
-				  // from the XML
-				  if (eval("typeof(" + name + ")") == "undefined") {
-				    Jester.Resource.model(name, {prefix: this._prefix, singular: singular, plural: plural, format: this._format});
-				  }
-				  var base = eval(name + ".build(this._attributesFromTree(single))");
-				  value.push(base);
-			}, this));
-        }
-        // has_one or belongs_to
-        else {
-          singular = attr;
-          var name = _(singular).capitalize();
-
-          // if the association hasn't been modeled, do a default modeling here
-          // hosted object's prefix and format are inherited, singular is set from the XML
-          if (eval("typeof(" + name + ")") == "undefined") {
-            Jester.Resource.model(name, {prefix: this._prefix, singular: singular, format: this._format});
-          }
-          value = eval(name + ".build(this._attributesFromTree(value))");
-        }
-      }
-
-      // transform attribute name if needed
-      attribute = attr.replace(/-/g, "_");
-      attributes[attribute] = value;
-      if(x == 5)
-		break;
-    }
-
-    return attributes;
-  },
-
   _loadSingle : function(doc) {
     var attributes;
-    if (this._format == "json")
-      attributes = this._attributesFromJSON(doc);
-    else
-      attributes = this._attributesFromTree(doc[this._singular_xml]);
-	
+    attributes = this._attributesFromJSON(doc);
     return this.build(attributes);
   },
 
   _loadCollection : function(doc) {
-    var collection;
-    if (this._format == "json") {
-      collection = _(doc).map( bind(this, function(item) {
+    return _(doc).map( bind(this, function(item) {
         return this.build(this._attributesFromJSON(item));
-      }));
-    }
-    else {
-      // if only one result, wrap it in an array
-      if (!Jester.Resource.elementHasMany(doc[this._plural_xml]))
-        doc[this._plural_xml][this._singular_xml] = [doc[this._plural_xml][this._singular_xml]];
-
-      collection = _(doc[this._plural_xml][this._singular_xml]).map( bind(this, function(elem) {
-        return this.build(this._attributesFromTree(elem));
-      }));
-    }
-    return collection;
+    }));
   }
 
 });
@@ -627,15 +501,7 @@ _.extend(Jester.Resource.prototype, {
         if (errors)
           this._setErrors(errors);
         else {
-          var attributes;
-          if (this.klass._format == "json") {
-            attributes = this._attributesFromJSON(transport.responseText);
-          }
-          else {
-            var doc = Jester.Tree.parseXML(transport.responseText);
-            if (doc[this.klass._singular_xml])
-              attributes = this._attributesFromTree(doc[this.klass._singular_xml]);
-          }
+          var attributes = this._attributesFromJSON(transport.responseText);
           if (attributes)
             this._resetAttributes(attributes);
         }
@@ -753,10 +619,7 @@ _.extend(Jester.Resource.prototype, {
   },
 
   _errorsFrom : function(raw) {
-    if (this.klass._format == "json")
-      return this._errorsFromJSON(raw);
-    else
-      return this._errorsFromXML(raw);
+    return this._errorsFromJSON(raw);
   },
 
     // Pulls errors from JSON
@@ -772,25 +635,6 @@ _.extend(Jester.Resource.prototype, {
     return json.map(function(pair) {
       return _(pair[0]).capitalize() + " " + pair[1];
     });
-  },
-
-  // Pulls errors from XML
-  _errorsFromXML : function(xml) {
-    if (!xml) return false;
-    var doc = Jester.Tree.parseXML(xml);
-
-    if (doc && doc.errors) {
-      var errors = [];
-      if (typeof(doc.errors.error) == "string")
-        doc.errors.error = [doc.errors.error];
-
-      _(doc.errors.error).each(function(value, index) {
-        errors.push(value);
-      });
-
-      return errors;
-    }
-    else return false;
   },
 
   // Sets errors with an array.  Could be extended at some point to include breaking error messages into pairs (attribute, msg).
@@ -865,22 +709,6 @@ _.extend(Jester.Resource.prototype, {
   }
 
 });
-
-// Returns true if the element has more objects beneath it, or just 1 or more attributes.
-// It's not perfect, this would mess up if an object had only one attribute, and it was an array.
-// For now, this is just one of the difficulties of dealing with ObjTree.
-Jester.Resource.elementHasMany = function(element) {
-  var i = 0;
-  var singular = null;
-  var has_many = false;
-  for (var val in element) {
-    if (i == 0)
-      singular = val;
-    i += 1;
-  }
-
-  return (element[singular] && typeof(element[singular]) == "object" && element[singular].length != null && i == 1);
-}
 
 // This bind function is just a reversal of Underscore's bind arguments to make it look a bit more standard
 
