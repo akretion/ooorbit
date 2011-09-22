@@ -13,15 +13,13 @@ Jester.Resource = function(){};
 Jester.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'}
 
 Jester.AjaxHandler = function(url, options) {
-  //console.log(options);
-  //console.trace();
 	if(typeof(Ajax) != 'undefined') {
 		return new Ajax.Request(url, options).transport;
 	} else if (typeof($) != 'undefined') {
-    return $.ajax(url, options);
-	} else {
-		return false;
-	}
+		return $.ajax(url, options);
+	} else if (typeof(Ext) != 'undefined'){
+		return Ext.Ajax.request(options);
+	}// else raise error
 }
 Jester.singleOrigin = true;
 
@@ -185,7 +183,6 @@ _.extend(Jester.Resource, {
     } else {
       parse_and_callback = function(transport) {
         if (transport.status == 500) return callback(null);
-		//console.log(Jester.Tree.parseXML(transport.responseText));
         return callback(Jester.Tree.parseXML(transport.responseText));
       }
     }
@@ -222,6 +219,7 @@ _.extend(Jester.Resource, {
       options.async = false;
       options.type = options.method;
       options.data = options.parameters;
+      options.url = url
       res = Jester.AjaxHandler(url, options);
       return callback(res);
     }
@@ -279,14 +277,12 @@ _.extend(Jester.Resource, {
     } else if (id instanceof Array) {
       params.ids = id;
       var url = this._list_url(params);
-      //console.log(url)
       return this.requestAndParse(this._format, findAllWork, url, {}, callback, this._remote);
     } else {
       if (isNaN(parseInt(id))) return null;
       params.id = id;
 
       var url = this._show_url(params);
-      //console.log(url)
       return this.requestAndParse(this._format, findOneWork, url, {}, callback, this._remote);
     }
   },
@@ -361,16 +357,12 @@ _.extend(Jester.Resource, {
   },
 
   _url_for : function(action, params) {
-    //console.log("_url_for")
-    //console.log(action, params)
     if (!this._urls[action]) return "";
     // if an integer is sent, it's assumed just the ID is a parameter
     if (typeof(params) == "number") params = {id: params}
 
     params = _(_(this._defaultParams).clone()).extend(params);
-    //console.log(params)
     var url = this._interpolate(this._prefix + this._urls[action], params);
-    //console.log(url)
     return url + (params && !(true == _(params).isEmpty()) ? "?" + _(params).toQueryString() : "");
   },
 
@@ -396,12 +388,7 @@ _.extend(Jester.Resource, {
 
     var attributes = {};
     var i = 0;
-    //console.log("json before");
-    //console.log(json);
-    //console.log(this.klass);
     if(json[this.options.name]) json = json[this.options.name]
-    //console.log("json after");
-    //console.log(json);
     
     for (var attr in json) {
       var value = json[attr];
@@ -643,7 +630,6 @@ _.extend(Jester.Resource.prototype, {
           var attributes;
           if (this.klass._format == "json") {
             attributes = this._attributesFromJSON(transport.responseText);
-            //console.log(attributes);
           }
           else {
             var doc = Jester.Tree.parseXML(transport.responseText);
@@ -714,9 +700,7 @@ _.extend(Jester.Resource.prototype, {
     params = {};
     if (args.length > 1) {
         last_arg = args[args.length - 1]
-        //alert(last_arg);
         if (typeof last_arg == 'object') {
-          //alert("obj");
           params = last_arg
         } else {
           param_string += "," + last_arg
@@ -724,7 +708,6 @@ _.extend(Jester.Resource.prototype, {
     }
     params['method'] = args.slice(0, 1)[0]
     params['param_string'] = param_string
-    //console.log(params);
     return this.klass.requestAndParse('json', callWork, url, {parameters: params, method: "post"});
   },
 
