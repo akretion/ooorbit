@@ -16,6 +16,7 @@ Jester.AjaxHandler = function(url, options) {
 	if (typeof(Ajax) != 'undefined') {//Prototype
 		return new Ajax.Request(url, options).transport;
 	} else if (typeof(jQuery) != 'undefined') {//JQuery
+        $.ajaxSetup ({cache: false});
 		return $.ajax(url, options);
 	} else if (typeof(Ext) != 'undefined') {//Ext
 		return Ext.Ajax.request(options);
