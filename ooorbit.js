@@ -1,12 +1,7 @@
-// Jester version 1.6
-// Compatible, tested with Underscore 1.0.1
-// Released under the MIT License.
-
-
-String.prototype.toOpenERPName = function(){
-	return this.replace(/([A-Z])/g, function($1){return "_"+$1.toLowerCase();}).replace(/^\_*/g, "");
-};
-
+// OOORBIT
+// copyright Akretion
+// author Raphaël Valyi
+// all rights reserved
 
 var Jester = {}
 Jester.Resource = function(){};
@@ -19,7 +14,9 @@ Jester.AjaxHandler = function(url, options) {
 		return $.ajax(url, options);
 	} else if (typeof(Ext) != 'undefined'){
 		return Ext.Ajax.request(options);
-	}// else raise error
+	} else {
+        alert('Hey dude! you need some Ajax lib: JQuery, Prototype or Sencha...');
+    }
 }
 Jester.singleOrigin = true;
 
@@ -54,7 +51,7 @@ _.extend(Jester.Resource, {
   get: function(model)
   {
     options = {};
-    options['plural'] = model.toOpenERPName();
+    options['plural'] = _(model).toOpenERPName();
     options['format'] = 'json';
     options['prefix'] = this.config['prefix'];//'http://localhost:3000/ooorest/';//TODO if no conf!!
     return this.model(model, options);
@@ -63,7 +60,7 @@ _.extend(Jester.Resource, {
   {
     var new_model = null;
     new_model = eval(model + " = " + Jester.Constructor(model));
-    model = model.toOpenERPName();
+    model = _(model).toOpenERPName();
     _.extend(new_model, Jester.Resource);
     new_model.prototype = new Jester.Resource();
     if (!options) options = {};
@@ -191,7 +188,7 @@ _.extend(Jester.Resource, {
 
     if (options.asynchronous) {
       options.onComplete = function(transport, json) {user_callback(callback(transport), json);}
-      return Jester.AjaxHandler(url, options); 
+      return Jester.AjaxHandler(url, options);//TODO make compat with JQuery and Sencha 
     }
     else
     {
@@ -203,15 +200,6 @@ _.extend(Jester.Resource, {
       res = Jester.AjaxHandler(url, options);
       return callback(res);
     }
-  },
-  
-  call : function(params, callback) {
-    var callWork = bind(function(doc) {
-    });
-
-    var url = this._call_url(params);
-      //this.options.prefix + "/" + this.options.singular + //this._call_url(params);
-    return this.requestAndParse(this._format, callWork, url, {}, callback, this._remote);
   },
   
   find : function(id, params, callback) {
@@ -550,30 +538,35 @@ _.extend(Jester.Resource.prototype, {
     return this.klass.request(saveWork, url, {parameters: objParams, method: method}, callback);
   },
 
-  call : function() {
-    var args = Array.prototype.slice.call(arguments);
-    var callback = bind(function(doc) {
-    });
+  call : function(method, params_list, params_hash, callback) {
+    params_hash = typeof(params_hash) != 'undefined' ? params_hash : {};
+    if (typeof(params_list) == 'object' && params_list.length <1) {
+      params_hash['empty_params'] = "true";
+    }
+    if (!callback && typeof(params_hash) == "function") {
+      callback = params_hash;
+      params_hash = {};
+    }
+    if (!callback && typeof(params_list) == "function") {
+      callback = params_list;
+      params_list = [];
+    }
+    params_list = typeof(params_list) != 'undefined' ? params_list : [];
+    var c = 0;
+    params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
+    console.log("callb", callback);
+    params_hash['method'] = method;
+    console.log(params_list.length);
 
     var callWork = bind(this, function(transport) {
-      return transport;
+        console.log("trans", transport);
+//        eval("var result = " + transport.responseText); // hashes need this kind of eval
+        return callback(transport);
     });
 
     //var url = this._call_url(params);
     var url = this.klass.options.prefix + "/" + this.klass.options.singular + "/" + this.id + "/call." + this.klass.options.format
-    var param_string = args.slice(1, args.length - 1).join(",");
-    params = {};
-    if (args.length > 1) {
-        last_arg = args[args.length - 1]
-        if (typeof last_arg == 'object') {
-          params = last_arg
-        } else {
-          param_string += "," + last_arg
-        }
-    }
-    params['method'] = args.slice(0, 1)[0]
-    params['param_string'] = param_string
-    return this.klass.requestAndParse('json', callWork, url, {parameters: params, method: "post"});
+    return this.klass.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"});
   },
 
   setAttributes : function(attributes)
@@ -606,15 +599,7 @@ _.extend(Jester.Resource.prototype, {
 
   _attributesFromJSON: function()
   {
-    console.log("_attributesFromJSON");
-    console.log(arguments);
-    console.trace();
     return this.klass._attributesFromJSON.apply(this.klass, arguments);
-  },
-
-  _attributesFromTree: function()
-  {
-    return this.klass._attributesFromTree.apply(this.klass, arguments);
   },
 
   _errorsFrom : function(raw) {
@@ -772,6 +757,9 @@ _.mixin({
 
 	    return camelized;
   	},
+    toOpenERPName: function(string){
+        return string.replace(/([A-Z])/g, function($1){return "_"+$1.toLowerCase();}).replace(/^\_*/g, "");
+    },
 	strinclude: function (string, pattern) {
 	    return string.indexOf(pattern) > -1;
 	}
