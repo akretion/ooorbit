@@ -20,7 +20,7 @@ Jester.AjaxHandler = function(url, options) {
 	} else if (typeof(Ext) != 'undefined') {//Ext
 		return Ext.Ajax.request(options);
     } else if (typeof(UrlFetchApp) != 'undefined') {//Google
-        return UrlFetchApp.fetch(url, options);
+        return {'status': 200, 'responseText': UrlFetchApp.fetch(url, options).getContentText()};//TODO put actual status
     } else {
         alert('Hey dude! you need some Ajax lib: JQuery, Prototype or Sencha...');
     }
@@ -203,9 +203,8 @@ _.extend(Jester.Resource, {
     }
     else
     {
-      console.trace();
       options.asynchronous = false; // Make sure it's set, to avoid being overridden.
-      return Jester.AjaxHandler(url, options);
+      return callback(Jester.AjaxHandler(url, options));
     }
   },
   
@@ -225,12 +224,9 @@ _.extend(Jester.Resource, {
     params_list = typeof(params_list) != 'undefined' ? params_list : [];
     var c = 0;
     params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
-    console.log("callb", callback);
     params_hash['method'] = method;
-    console.log(params_list.length);
 
     var callWork = bind(this, function(transport) {
-        console.log("trans", transport);
         if (typeof(callback) != 'undefined') {
             return callback(transport);
         } else {
@@ -595,12 +591,9 @@ _.extend(Jester.Resource.prototype, {
     params_list = typeof(params_list) != 'undefined' ? params_list : [];
     var c = 0;
     params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
-    console.log("callb", callback);
     params_hash['method'] = method;
-    console.log(params_list.length);
 
     var callWork = bind(this, function(transport) {
-        console.log("trans", transport);
         if (typeof(callback) != 'undefined') {
             return callback(transport);
         } else {
