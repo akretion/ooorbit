@@ -8,13 +8,20 @@ Jester.Resource = function(){};
 Jester.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'}
 
 Jester.AjaxHandler = function(url, options) {
-	if(typeof(Ajax) != 'undefined') {
+    options.async = options.asynchronous;
+    options.type = options.method;
+    options.data = options.parameters;
+    options.success = options.onComplete;
+    options.url = url;
+	if (typeof(Ajax) != 'undefined') {//Prototype
 		return new Ajax.Request(url, options).transport;
-	} else if (typeof($) != 'undefined') {
+	} else if (typeof(jQuery) != 'undefined') {//JQuery
 		return $.ajax(url, options);
-	} else if (typeof(Ext) != 'undefined'){
+	} else if (typeof(Ext) != 'undefined') {//Ext
 		return Ext.Ajax.request(options);
-	} else {
+    } else if (typeof(UrlFetchApp) != 'undefined') {//Google
+        return UrlFetchApp.fetch(url, options);
+    } else {
         alert('Hey dude! you need some Ajax lib: JQuery, Prototype or Sencha...');
     }
 }
@@ -187,21 +194,55 @@ _.extend(Jester.Resource, {
       user_callback = function(arg){return arg;}
 
     if (options.asynchronous) {
-      options.onComplete = function(transport, json) {user_callback(callback(transport), json);}
-      return Jester.AjaxHandler(url, options);//TODO make compat with JQuery and Sencha 
+        if (typeof(jQuery) != 'undefined') {//JQuery
+            options.onComplete = function(data, textstatus, transport) {user_callback(callback(transport));}
+        } else {
+            options.onComplete = function(transport, json) {user_callback(callback(transport));}
+        }
+      return Jester.AjaxHandler(url, options); 
     }
     else
     {
+      console.trace();
       options.asynchronous = false; // Make sure it's set, to avoid being overridden.
-      options.async = false;
-      options.type = options.method;
-      options.data = options.parameters;
-      options.url = url
-      res = Jester.AjaxHandler(url, options);
-      return callback(res);
+      return Jester.AjaxHandler(url, options);
     }
   },
   
+  call : function(method, ids, params_list, params_hash, callback) {//TODO refactor with instance call!
+    params_hash = typeof(params_hash) != 'undefined' ? params_hash : {};
+    if (typeof(params_list) == 'object' && params_list.length <1) {
+      params_hash['empty_params'] = "true";
+    }
+    if (!callback && typeof(params_hash) == "function") {
+      callback = params_hash;
+      params_hash = {};
+    }
+    if (!callback && typeof(params_list) == "function") {
+      callback = params_list;
+      params_list = [];
+    }
+    params_list = typeof(params_list) != 'undefined' ? params_list : [];
+    var c = 0;
+    params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
+    console.log("callb", callback);
+    params_hash['method'] = method;
+    console.log(params_list.length);
+
+    var callWork = bind(this, function(transport) {
+        console.log("trans", transport);
+        if (typeof(callback) != 'undefined') {
+            return callback(transport);
+        } else {
+            return transport;
+        }
+    });
+
+    //var url = this._call_url(params);
+    var url = this.options.prefix + "/" + this.options.singular + "/" + ids.join(',') + "/call." + this.options.format
+    return this.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"});
+  },
+
   find : function(id, params, callback) {
     // allow a params hash to be omitted and a callback function given directly
     if (!callback && typeof(params) == "function") {
@@ -560,8 +601,11 @@ _.extend(Jester.Resource.prototype, {
 
     var callWork = bind(this, function(transport) {
         console.log("trans", transport);
-//        eval("var result = " + transport.responseText); // hashes need this kind of eval
-        return callback(transport);
+        if (typeof(callback) != 'undefined') {
+            return callback(transport);
+        } else {
+            return transport;
+        }
     });
 
     //var url = this._call_url(params);
