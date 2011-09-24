@@ -61,7 +61,7 @@ _.extend(Ooorbit.Resource, {
     options = {};
     options['plural'] = _(model).toOpenERPName();
     options['format'] = 'json';
-    options['prefix'] = this.config['prefix'];//'http://localhost:3000/ooorest/';//TODO if no conf!!
+    options['prefix'] = this.config['prefix'];
     return this.model(model, options);
   },
   model: function(model, options)
@@ -84,15 +84,11 @@ _.extend(Ooorbit.Resource, {
     options.remote       = false;
 
     // Establish prefix
-	
 	if(typeof(window) == 'undefined') {
 		var default_prefix = "http://localhost/";
-		
 	} else {
-		
 		var default_prefix = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port : "");
 	}
-	
 	
     if (options.prefix && options.prefix.match(/^https?:/))
       options.remote = true;
@@ -781,19 +777,6 @@ _.mixin({
   	},
 	capitalize: function(string){
     	return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
-  	},
-   	camelize: function(string) {
-    	var parts = string.split('-'), len = parts.length;
-	    if (len == 1) return parts[0];
-
-	    var camelized = string.charAt(0) == '-'
-	      ? parts[0].charAt(0).toUpperCase() + parts[0].substring(1)
-	      : parts[0];
-
-	    for (var i = 1; i < len; i++)
-	      camelized += parts[i].charAt(0).toUpperCase() + parts[i].substring(1);
-
-	    return camelized;
   	},
     toOpenERPName: function(string){
         return string.replace(/([A-Z])/g, function($1){return "_"+$1.toLowerCase();}).replace(/^\_*/g, "");
