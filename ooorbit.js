@@ -3,11 +3,11 @@
 // author Raphaël Valyi
 // all rights reserved
 
-var Jester = {}
-Jester.Resource = function(){};
-Jester.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'}
+var Ooorbit = {}
+Ooorbit.Resource = function(){};
+Ooorbit.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'}
 
-Jester.AjaxHandler = function(url, options) {
+Ooorbit.AjaxHandler = function(url, options) {
     options.async = options.asynchronous;
     options.type = options.method;
     options.data = options.parameters;
@@ -26,10 +26,10 @@ Jester.AjaxHandler = function(url, options) {
         alert('Hey dude! you need some Ajax lib: JQuery, Prototype or Sencha...');
     }
 }
-Jester.singleOrigin = true;
+Ooorbit.singleOrigin = true;
 
 // Doing it this way forces the validation of the syntax but gives flexibility enough to rename the new class.
-Jester.Constructor = function(model){
+Ooorbit.Constructor = function(model){
   return (function CONSTRUCTOR() {
     this.klass = CONSTRUCTOR;
     this.initialize.apply(this, arguments);
@@ -37,10 +37,10 @@ Jester.Constructor = function(model){
   }).toString().replace(/CONSTRUCTOR/g, model);
 }
 
-// universal Jester callback holder for remote JSON loading
-var jesterCallback = null;
+// universal Ooorbit callback holder for remote JSON loading
+var ooorbitCallback = null;
 
-_.extend(Jester.Resource, {
+_.extend(Ooorbit.Resource, {
   doNothing : function(options) {//FIXME ugly workaround
   },
   configure : function(options) {
@@ -67,10 +67,10 @@ _.extend(Jester.Resource, {
   model: function(model, options)
   {
     var new_model = null;
-    new_model = eval(model + " = " + Jester.Constructor(model));
+    new_model = eval(model + " = " + Ooorbit.Constructor(model));
     model = _(model).toOpenERPName();
-    _.extend(new_model, Jester.Resource);
-    new_model.prototype = new Jester.Resource();
+    _.extend(new_model, Ooorbit.Resource);
+    new_model.prototype = new Ooorbit.Resource();
     if (!options) options = {};
 
     var default_options = {
@@ -145,9 +145,9 @@ _.extend(Jester.Resource, {
   loadRemoteJSON : function(url, callback, user_callback) {
     // tack on user_callback if there is one, and only if it's really a function
     if (typeof(user_callback) == "function")
-      jesterCallback = function(doc) {user_callback(callback(doc));}
+      ooorbitCallback = function(doc) {user_callback(callback(doc));}
     else
-      jesterCallback = callback;
+      ooorbitCallback = callback;
 
     var script = document.createElement("script");
     script.type = "text/javascript";
@@ -156,14 +156,14 @@ _.extend(Jester.Resource, {
       url += "?";
     else
       url += "&";
-    url += "callback=jesterCallback";
+    url += "callback=ooorbitCallback";
     script.src = url;
 	
     document.firstChild.appendChild(script);
   },
 
   requestAndParse : function(format, callback, url, options, user_callback, remote) {
-    if (remote && format == "json" && user_callback && Jester.singleOrigin == true)
+    if (remote && format == "json" && user_callback && Ooorbit.singleOrigin == true)
       return this.loadRemoteJSON(url, callback, user_callback)
 
     parse_and_callback = function(transport) {
@@ -200,12 +200,12 @@ _.extend(Jester.Resource, {
         } else {
             options.onComplete = function(transport, json) {user_callback(callback(transport));}
         }
-      return Jester.AjaxHandler(url, options); 
+      return Ooorbit.AjaxHandler(url, options); 
     }
     else
     {
       options.asynchronous = false; // Make sure it's set, to avoid being overridden.
-      return callback(Jester.AjaxHandler(url, options));
+      return callback(Ooorbit.AjaxHandler(url, options));
     }
   },
   
@@ -426,7 +426,7 @@ _.extend(Jester.Resource, {
 
 });
 
-_.extend(Jester.Resource.prototype, {
+_.extend(Ooorbit.Resource.prototype, {
   initialize : function(attributes) {
     // Initialize no attributes, no associations
     this._properties = [];
@@ -740,7 +740,7 @@ function bind(context, func) {
 
 // If there is no object already called Resource, we define one to make things a little cleaner for us.
 if(typeof(Resource) == "undefined") {
-  var Resource = Jester.Resource;
+  var Resource = Ooorbit.Resource;
 }
 
 
