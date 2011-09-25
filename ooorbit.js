@@ -19,6 +19,7 @@ Ooorbit.AjaxHandler = function(url, options) {
         $.ajaxSetup ({cache: false});
 		return $.ajax(url, options);
 	} else if (typeof(Ext) != 'undefined') {//Ext
+        options.params = options.parameters;
 		return Ext.Ajax.request(options);
     } else if (typeof(UrlFetchApp) != 'undefined') {//Google
         return {'status': 200, 'responseText': UrlFetchApp.fetch(url, options).getContentText()};//TODO put actual status
@@ -45,15 +46,15 @@ _.extend(Ooorbit.Resource, {
   },
   configure : function(options) {
     options = options || {}
-    this.config['prefix'] = options['prefix'] || 'http://localhost:3000/ooorest/';//TODO set all options properly
+    this.config['prefix'] = options['prefix'] || '/ooorest/';//TODO set all options properly
     return this.config;
   },
   login : function(login, password, database) {
-    var url = "http://localhost:3000/session/login?login=" + login + "&password=" + password + "&database=" + database;
+    var url = "/session/login?login=" + login + "&password=" + password + "&database=" + database;
     return this.requestAndParse('json', this.doNothing, url, {}, this.doNothing, this._remote);
   },
   logout : function() {
-    var url = "http://localhost:3000/session/logout";
+    var url = "/session/logout";
     return this.requestAndParse('json', this.doNothing, url, {}, this.doNothing, this._remote);
   },
   get: function(model)
@@ -194,18 +195,21 @@ _.extend(Ooorbit.Resource, {
         if (typeof(jQuery) != 'undefined') {//JQuery
             options.onComplete = function(data, textstatus, transport) {user_callback(callback(transport));}
         } else {
-            options.onComplete = function(transport, json) {user_callback(callback(transport));}
+            options.onComplete = function(transport, json) {
+            var res = callback(transport);
+            user_callback(res);
+            }
         }
       return Ooorbit.AjaxHandler(url, options); 
     }
     else
     {
-      options.asynchronous = false; // Make sure it's set, to avoid being overridden.
+      options.asynchronous = false;
       return callback(Ooorbit.AjaxHandler(url, options));
     }
   },
   
-  call : function(method, ids, params_list, params_hash, callback) {//TODO refactor with instance call!
+  call : function(rpc_method, ids, params_list, params_hash, callback) {//TODO refactor with instance call!
     params_hash = typeof(params_hash) != 'undefined' ? params_hash : {};
     if (typeof(params_list) == 'object' && params_list.length <1) {
       params_hash['empty_params'] = "true";
@@ -221,19 +225,15 @@ _.extend(Ooorbit.Resource, {
     params_list = typeof(params_list) != 'undefined' ? params_list : [];
     var c = 0;
     params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
-    params_hash['method'] = method;
+    params_hash['rpc_method'] = rpc_method;
 
     var callWork = bind(this, function(transport) {
-        if (typeof(callback) != 'undefined') {
-            return callback(transport);
-        } else {
-            return transport;
-        }
+        return transport;
     });
 
     //var url = this._call_url(params);
     var url = this.options.prefix + "/" + this.options.singular + "/" + ids.join(',') + "/call." + this.options.format
-    return this.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"});
+    return this.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"}, callback);
   },
 
   find : function(id, params, callback) {
@@ -572,7 +572,7 @@ _.extend(Ooorbit.Resource.prototype, {
     return this.klass.request(saveWork, url, {parameters: objParams, method: method}, callback);
   },
 
-  call : function(method, params_list, params_hash, callback) {
+  call : function(rpc_method, params_list, params_hash, callback) {
     params_hash = typeof(params_hash) != 'undefined' ? params_hash : {};
     if (typeof(params_list) == 'object' && params_list.length <1) {
       params_hash['empty_params'] = "true";
@@ -588,19 +588,15 @@ _.extend(Ooorbit.Resource.prototype, {
     params_list = typeof(params_list) != 'undefined' ? params_list : [];
     var c = 0;
     params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
-    params_hash['method'] = method;
+    params_hash['rpc_method'] = rpc_method;
 
     var callWork = bind(this, function(transport) {
-        if (typeof(callback) != 'undefined') {
-            return callback(transport);
-        } else {
-            return transport;
-        }
+        return transport;
     });
 
     //var url = this._call_url(params);
     var url = this.klass.options.prefix + "/" + this.klass.options.singular + "/" + this.id + "/call." + this.klass.options.format
-    return this.klass.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"});
+    return this.klass.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"}, callback);
   },
 
   setAttributes : function(attributes)
