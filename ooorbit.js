@@ -3,9 +3,9 @@
 // author Raphaël Valyi
 // all rights reserved
 
-var Ooorbit = {}
+var Ooorbit = {};
 Ooorbit.Resource = function(){};
-Ooorbit.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'}
+Ooorbit.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'};
 
 //Abstract the Ajax call away to make it compatible with major libs
 Ooorbit.AjaxHandler = function(url, options) {
@@ -27,7 +27,7 @@ Ooorbit.AjaxHandler = function(url, options) {
     } else {
         alert('Hey dude! you need some Ajax lib: JQuery, Prototype or Sencha...');
     }
-}
+};
 Ooorbit.singleOrigin = true;
 
 // Doing it this way forces the validation of the syntax but gives flexibility enough to rename the new class.
@@ -37,12 +37,12 @@ Ooorbit.Constructor = function(model){
     this.initialize.apply(this, arguments);
     this.after_initialization.apply(this, arguments);
   }).toString().replace(/CONSTRUCTOR/g, model);
-}
+};
 
 _.extend(Ooorbit.Resource, {
   configure : function(options) {
-    options = options || {}
-    this.config['prefix'] = options['prefix'] || '/ooorest/';//TODO set all options properly
+    options = options || {};
+    this.config.prefix = options.prefix || '/ooorest/';//TODO set all options properly
     return this.config;
   },
   login : function(login, password, database, callback) {
@@ -63,9 +63,9 @@ _.extend(Ooorbit.Resource, {
   },
   get: function(model) {
     options = {};
-    options['plural'] = _(model).toOpenERPName();
-    options['format'] = 'json';
-    options['prefix'] = this.config['prefix'];
+    options.plural = _(model).toOpenERPName();
+    options.format = 'json';
+    options.prefix = this.config.prefix;
     return this.model(model, options);
   },
   model: function(model, options) {
@@ -81,7 +81,7 @@ _.extend(Ooorbit.Resource, {
       singular: _(model).underscore(),
       name:     model,
       defaultParams: {}
-    }
+    };
     options              = _.extend(default_options, options);
     options.format       = options.format.toLowerCase();
     options.remote       = false;
@@ -132,7 +132,7 @@ _.extend(Ooorbit.Resource, {
     model = model || this;
     var async = options.asynchronous;
 
-    if (async == null)
+    if (async === null)
       async = true;
 
     var buildWork = bind(model, function(doc) {
@@ -144,7 +144,7 @@ _.extend(Ooorbit.Resource, {
   loadRemoteJSON : function(url, callback, user_callback) {
     // tack on user_callback if there is one, and only if it's really a function
     if (typeof(user_callback) == "function")
-      ooorbitCallback = function(doc) {user_callback(callback(doc));}
+      ooorbitCallback = function(doc) {user_callback(callback(doc));};
     else
       ooorbitCallback = callback;
 
@@ -162,8 +162,8 @@ _.extend(Ooorbit.Resource, {
   },
 
   requestAndParse : function(format, callback, url, options, user_callback, remote) {
-    if (remote && format == "json" && user_callback && Ooorbit.singleOrigin == true)
-      return this.loadRemoteJSON(url, callback, user_callback)
+    if (remote && format == "json" && user_callback && Ooorbit.singleOrigin === true)
+      return this.loadRemoteJSON(url, callback, user_callback);
 
     parse_and_callback = function(transport) {
 console.log(transport);
@@ -174,7 +174,7 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
         if (transport.status == 500) return callback(null);
         eval("var attributes = " + transport.responseText); // hashes need this kind of eval
         return callback(attributes);
-    }
+    };
 
     // most parse requests are going to be a GET
     if (!(options.postBody || options.parameters || options.postbody || options.method == "post")) {
@@ -196,17 +196,17 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
       }
     }
     else
-      user_callback = function(arg){return arg;}
+      user_callback = function(arg){return arg;};
 
     if (options.asynchronous) {
         if (typeof(jQuery) != 'undefined') {//JQuery
-            options.onComplete = function(data, textstatus, transport) {user_callback(callback(transport));}
-            options.error = function(jqXHR, textStatus, errorThrown) {console.log([jqXHR, textStatus, errorThrown]);}
+            options.onComplete = function(data, textstatus, transport) {user_callback(callback(transport));};
+            options.error = function(jqXHR, textStatus, errorThrown) {console.log([jqXHR, textStatus, errorThrown]);};
         } else {
             options.onComplete = function(transport, json) {
             var res = callback(transport);
             user_callback(res);
-            }
+            };
         }
       return Ooorbit.AjaxHandler(url, options); 
     }
@@ -219,7 +219,7 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
   call : function(rpc_method, ids, params_list, params_hash, callback) {//TODO refactor with instance call!
     params_hash = typeof(params_hash) != 'undefined' ? params_hash : {};
     if (typeof(params_list) == 'object' && params_list.length <1) {
-      params_hash['empty_params'] = "true";
+      params_hash.empty_params = "true";
     }
     if (!callback && typeof(params_hash) == "function") {
       callback = params_hash;
@@ -232,14 +232,14 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
     params_list = typeof(params_list) != 'undefined' ? params_list : [];
     var c = 0;
     params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
-    params_hash['rpc_method'] = rpc_method;
+    params_hash.rpc_method = rpc_method;
 
     var callWork = bind(this, function(transport) {
         return transport;
     });
 
     //var url = this._call_url(params);
-    var url = this.options.prefix + "/" + this.options.singular + "/" + ids.join(',') + "/call." + this.options.format
+    var url = this.options.prefix + "/" + this.options.singular + "/" + ids.join(',') + "/call." + this.options.format;
     return this.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"}, callback);
   },
 
@@ -270,12 +270,12 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
 
       var base = this._loadSingle(doc);
       // if there were no properties, it was probably not actually loaded
-      if (!base || base._properties.length == 0) 
+      if (!base || base._properties.length === 0) 
 		return null;
 
       // even if the ID didn't come back, we obviously knew the ID to search with, so set it
       if (!_(base._properties).include("id"))
-		base._setAttribute("id", parseInt(id))
+		base._setAttribute("id", parseInt(id));
 
       return base;
     });
@@ -368,11 +368,11 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
   _url_for : function(action, params) {
     if (!this._urls[action]) return "";
     // if an integer is sent, it's assumed just the ID is a parameter
-    if (typeof(params) == "number") params = {id: params}
+    if (typeof(params) == "number") params = {id: params};
 
     params = _(_(this._defaultParams).clone()).extend(params);
     var url = this._interpolate(this._prefix + this._urls[action], params);
-    return url + (params && !(true == _(params).isEmpty()) ? "?" + _(params).toQueryString() : "");
+    return url + (params && !(true === _(params).isEmpty()) ? "?" + _(params).toQueryString() : "");
   },
 
   _default_urls : function(options) {
@@ -381,7 +381,7 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
       'all' : "/" + options.plural + "." + options.format,
       'list' : "/" + options.plural + "/:ids." + options.format,
       'new' : "/" + options.plural + "/new." + options.format
-    }
+    };
     urls.create = urls.list;
     urls.destroy = urls.update = urls.show;
 
@@ -397,7 +397,7 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
 
     var attributes = {};
     var i = 0;
-    if(json[this.options.name]) json = json[this.options.name]
+    if(json[this.options.name]) json = json[this.options.name];
     
     for (var attr in json) {
       var value = json[attr];
@@ -410,7 +410,7 @@ Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.em
       attributes[attr] = value;
       i += 1;
     }
-    if (i == 0) return false; // empty hashes should just return false
+    if (i === 0) return false; // empty hashes should just return false
 
     return attributes;
   },
@@ -448,7 +448,7 @@ _.extend(Ooorbit.Resource.prototype, {
   after_initialization: function(){},
 
   new_record : function() {return !(this.id);},
-  valid : function() {return true == _(this.errors).isEmpty();},
+  valid : function() {return true === _(this.errors).isEmpty();},
 
   reload : function(callback) {
     var reloadWork = bind(this, function(copy) {
@@ -524,7 +524,7 @@ _.extend(Ooorbit.Resource.prototype, {
     var saveWork = bind(this, function(transport) {
       var saved = false;
 
-      if (transport.responseText && (_(transport.responseText).strip() != "")) {
+      if (transport.responseText && (_(transport.responseText).strip() !== "")) {
         var errors = this._errorsFrom(transport.responseText);
         if (errors)
           this._setErrors(errors);
@@ -541,11 +541,11 @@ _.extend(Ooorbit.Resource.prototype, {
         if (loc) {
           id = parseInt(loc.match(/\/([^\/]*?)(\.\w+)?$/)[1]);
           if (!isNaN(id))
-            this._setProperty("id", id)
+            this._setProperty("id", id);
         }
       }
 
-      return (transport.status >= 200 && transport.status < 300 && this.errors.length == 0);
+      return (transport.status >= 200 && transport.status < 300 && this.errors.length === 0);
     });
 
     // reset errors
@@ -582,7 +582,7 @@ _.extend(Ooorbit.Resource.prototype, {
   call : function(rpc_method, params_list, params_hash, callback) {
     params_hash = typeof(params_hash) != 'undefined' ? params_hash : {};
     if (typeof(params_list) == 'object' && params_list.length <1) {
-      params_hash['empty_params'] = "true";
+      params_hash.empty_params = "true";
     }
     if (!callback && typeof(params_hash) == "function") {
       callback = params_hash;
@@ -595,14 +595,14 @@ _.extend(Ooorbit.Resource.prototype, {
     params_list = typeof(params_list) != 'undefined' ? params_list : [];
     var c = 0;
     params_list.forEach(function(item) { params_hash["p" + c] = item; c++; });
-    params_hash['rpc_method'] = rpc_method;
+    params_hash.rpc_method = rpc_method;
 
     var callWork = bind(this, function(transport) {
         return transport;
     });
 
     //var url = this._call_url(params);
-    var url = this.klass.options.prefix + "/" + this.klass.options.singular + "/" + this.id + "/call." + this.klass.options.format
+    var url = this.klass.options.prefix + "/" + this.klass.options.singular + "/" + this.id + "/call." + this.klass.options.format;
     return this.klass.requestAndParse('json', callWork, url, {parameters: params_hash, method: "post"}, callback);
   },
 
@@ -620,7 +620,7 @@ _.extend(Ooorbit.Resource.prototype, {
 
   // mimics ActiveRecord's behavior of omitting associations, but keeping foreign keys
   attributes : function(include_associations) {
-    var attributes = {}
+    var attributes = {};
     for (var i=0; i<this._properties.length; i++)
       attributes[this._properties[i]] = this[this._properties[i]];
     if (include_associations) {
@@ -682,13 +682,13 @@ _.extend(Ooorbit.Resource.prototype, {
   _setProperties : function(properties) {
     this._clearProperties();
     for (var prop in properties)
-      this._setProperty(prop, properties[prop])
+      this._setProperty(prop, properties[prop]);
   },
 
   _setAssociations : function(associations) {
     this._clearAssociations();
     for (var assoc in associations)
-      this._setAssociation(assoc, associations[assoc])
+      this._setAssociation(assoc, associations[assoc]);
   },
 
   _setProperty : function(property, value) {
@@ -771,5 +771,5 @@ _.mixin({
   	},
     toOpenERPName: function(string){
         return string.replace(/([A-Z])/g, function($1){return "_"+$1.toLowerCase();}).replace(/^\_*/g, "");
-    },
+    }
 });
