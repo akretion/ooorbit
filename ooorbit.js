@@ -14,22 +14,41 @@ Ooorbit.AjaxHandler = function(url, options) {
     options.async = options.asynchronous;
     options.type = options.method;
     options.data = options.parameters;
-    options.success = options.onComplete;
     options.url = url;
     if (typeof(Ajax) != 'undefined') { //Prototype
+        options.onComplete = function(transport, json) {
+            var res = options.global_callback(transport);
+            options.user_callback(res);
+        };
         return new Ajax.Request(url, options).transport;
     }
     else if (typeof(jQuery) != 'undefined') { //JQuery
         $.ajaxSetup({
             cache: false
         });
+        options.complete = function(transport, textStatus) {
+            options.user_callback(options.global_callback(transport));
+        };
         return $.ajax(url, options);
     }
     else if (typeof(Ext) != 'undefined') { //Ext
         options.params = options.parameters;
+        options.success = function(transport) {
+            var res = options.global_callback(transport);
+            options.user_callback(res);
+        };
+        options.failure = function(transport) {
+            var res = options.global_callback(transport);
+            options.user_callback(res);
+        };
+        //options.error = Ooorbit.errorHandler;
         return Ext.Ajax.request(options);
     }
     else if (typeof(UrlFetchApp) != 'undefined') { //Google
+        options.onComplete = function(transport, json) {
+            var res = option.global_callback(transport);
+            options.user_callback(res);
+        };
         return {
             'status': 200,
             'responseText': UrlFetchApp.fetch(url, options).getContentText()
@@ -152,12 +171,9 @@ _.extend(Ooorbit.Resource, {
     requestAndParse: function(format, callback, url, options, user_callback, remote) {
         if (remote && format == "json" && user_callback && Ooorbit.singleOrigin === true) return this.loadRemoteJSON(url, callback, user_callback);
         parse_and_callback = function(transport) {
-            console.log(transport);
-            console.trace();
-            if (transport.status == 503) {
-                Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.emptyFn);
+            if (transport.status != 200) {
+                return Ooorbit.errorHandler(transport);
             }
-            if (transport.status == 500) return callback(null);
             eval("var attributes = " + transport.responseText); // hashes need this kind of eval
             return callback(attributes);
         };
@@ -182,18 +198,8 @@ _.extend(Ooorbit.Resource, {
             return arg;
         };
         if (options.asynchronous) {
-            if (typeof(jQuery) != 'undefined') { //JQuery
-                options.onComplete = function(data, textstatus, transport) {
-                    user_callback(callback(transport));
-                };
-                options.error = Ooorbit.errorHandler;
-            }
-            else {
-                options.onComplete = function(transport, json) {
-                    var res = callback(transport);
-                    user_callback(res);
-                };
-            }
+            options.global_callback = callback;
+            options.user_callback = user_callback;
             return Ooorbit.AjaxHandler(url, options);
         }
         else {
