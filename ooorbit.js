@@ -39,6 +39,12 @@ Ooorbit.AjaxHandler = function(url, options) {
         alert('Hey dude! you need some Ajax lib: JQuery, Prototype or Sencha...');
     }
 };
+
+Ooorbit.errorHandler = function(transport, textStatus, errorThrown) {
+    eval("var error = " + transport.responseText);
+    alert(error.openerp_error); 
+};
+
 Ooorbit.singleOrigin = true;
 // Doing it this way forces the validation of the syntax but gives flexibility enough to rename the new class.
 Ooorbit.Constructor = function(model) {
@@ -180,9 +186,7 @@ _.extend(Ooorbit.Resource, {
                 options.onComplete = function(data, textstatus, transport) {
                     user_callback(callback(transport));
                 };
-                options.error = function(jqXHR, textStatus, errorThrown) {
-                    console.log([jqXHR, textStatus, errorThrown]);
-                };
+                options.error = Ooorbit.errorHandler;
             }
             else {
                 options.onComplete = function(transport, json) {
