@@ -7,6 +7,7 @@ var Ooorbit = {}
 Ooorbit.Resource = function(){};
 Ooorbit.Resource.config = {prefix: '/ooorest/', database: 'database', user: 'admin'}
 
+//Abstract the Ajax call away to make it compatible with major libs
 Ooorbit.AjaxHandler = function(url, options) {
     options.async = options.asynchronous;
     options.type = options.method;
@@ -38,35 +39,36 @@ Ooorbit.Constructor = function(model){
   }).toString().replace(/CONSTRUCTOR/g, model);
 }
 
-// universal Ooorbit callback holder for remote JSON loading
-var ooorbitCallback = null;
-
 _.extend(Ooorbit.Resource, {
-  doNothing : function(options) {//FIXME ugly workaround
-  },
   configure : function(options) {
     options = options || {}
     this.config['prefix'] = options['prefix'] || '/ooorest/';//TODO set all options properly
     return this.config;
   },
-  login : function(login, password, database) {
-    var url = "/session/login?login=" + login + "&password=" + password + "&database=" + database;
-    return this.requestAndParse('json', this.doNothing, url, {}, this.doNothing, this._remote);
+  login : function(login, password, database, callback) {
+    var loginWork = bind(this, function(transport) {
+        return transport;
+    });
+
+    var url = "/session/login.json?login=" + login + "&password=" + password + "&database=" + database;
+    return this.requestAndParse('json', loginWork, url, {}, callback, this._remote);
   },
-  logout : function() {
-    var url = "/session/logout";
-    return this.requestAndParse('json', this.doNothing, url, {}, this.doNothing, this._remote);
+  logout : function(callback) {
+    var logoutWork = bind(this, function(transport) {
+        return transport;
+    });
+
+    var url = "/session/logout.json";
+    return this.requestAndParse('json', logoutWork, url, {}, callback, this._remote);
   },
-  get: function(model)
-  {
+  get: function(model) {
     options = {};
     options['plural'] = _(model).toOpenERPName();
     options['format'] = 'json';
     options['prefix'] = this.config['prefix'];
     return this.model(model, options);
   },
-  model: function(model, options)
-  {
+  model: function(model, options) {
     var new_model = null;
     new_model = eval(model + " = " + Ooorbit.Constructor(model));
     model = _(model).toOpenERPName();
@@ -164,6 +166,11 @@ _.extend(Ooorbit.Resource, {
       return this.loadRemoteJSON(url, callback, user_callback)
 
     parse_and_callback = function(transport) {
+console.log(transport);
+console.trace();
+        if (transport.status == 503) {
+Ext.Msg.alert('Title', 'User Toto is already took care of this picking!', Ext.emptyFn);
+}
         if (transport.status == 500) return callback(null);
         eval("var attributes = " + transport.responseText); // hashes need this kind of eval
         return callback(attributes);
@@ -194,6 +201,7 @@ _.extend(Ooorbit.Resource, {
     if (options.asynchronous) {
         if (typeof(jQuery) != 'undefined') {//JQuery
             options.onComplete = function(data, textstatus, transport) {user_callback(callback(transport));}
+            options.error = function(jqXHR, textStatus, errorThrown) {console.log([jqXHR, textStatus, errorThrown]);}
         } else {
             options.onComplete = function(transport, json) {
             var res = callback(transport);
@@ -202,8 +210,7 @@ _.extend(Ooorbit.Resource, {
         }
       return Ooorbit.AjaxHandler(url, options); 
     }
-    else
-    {
+    else {
       options.asynchronous = false;
       return callback(Ooorbit.AjaxHandler(url, options));
     }
@@ -736,15 +743,6 @@ if(typeof(Resource) == "undefined") {
 }
 
 
-/*  Exerpts from Prototype JavaScript framework, version 1.6.1
- *  (c) 2005-2009 Sam Stephenson
- *
- *  Prototype is freely distributable under the terms of an MIT-style license.
- *  For details, see the Prototype web site: http://www.prototypejs.org/
- *
- *  These have been mixed in to the Underscore.js namespace for easy referencing and usage elsewhere.
- *
- *--------------------------------------------------------------------------*/
 _.mixin({
 	underscore: function(string) {
 	  return string.replace(/::/g, '/')
@@ -768,16 +766,10 @@ _.mixin({
 	      return results;
 	    }).join('&');
 	},
-	strip: function(string) {
-    	return string.replace(/^\s+/, '').replace(/\s+$/, '');
-  	},
 	capitalize: function(string){
     	return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
   	},
     toOpenERPName: function(string){
         return string.replace(/([A-Z])/g, function($1){return "_"+$1.toLowerCase();}).replace(/^\_*/g, "");
     },
-	strinclude: function (string, pattern) {
-	    return string.indexOf(pattern) > -1;
-	}
 });
