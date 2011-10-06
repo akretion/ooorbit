@@ -223,7 +223,13 @@ _.extend(Ooorbit.Resource, {
         params_list = typeof(params_list) != 'undefined' ? params_list : [];
         var c = 0;
         params_list.forEach(function(item) {
-            params_hash["p" + c] = item;
+            if (typeof(item) === 'object' && !(item instanceof Array)) {
+                for (var prop in item) {
+                    params_hash["p" + c + "[" + prop + "]"] = item[prop];
+                }
+            } else {
+                params_hash["p" + c] = item;
+            }
             c++;
         });
         params_hash.rpc_method = rpc_method;
