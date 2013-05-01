@@ -60,8 +60,14 @@ Ooorbit.AjaxHandler = function(url, options) {
 };
 
 Ooorbit.errorHandler = function(transport, textStatus, errorThrown) {
-    eval("var error = " + transport.responseText);
-    alert(error.openerp_error); 
+    try {
+        eval("var error = " + transport.responseText);
+        alert(error.openerp_error);
+    }
+    catch(err){
+        var error = transport.statusText
+    };
+    return error;
 };
 
 Ooorbit.singleOrigin = true;
